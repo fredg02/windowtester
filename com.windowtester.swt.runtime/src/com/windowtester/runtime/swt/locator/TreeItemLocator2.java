@@ -323,6 +323,12 @@ public class TreeItemLocator2 extends ControlRelativeLocator implements IItemLoc
 		return UIProxy.getText(item, 0);
 	}
 	
+	public boolean isExpanded(IUIContext ui) throws WidgetSearchException {
+		IWidgetReference ref = (IWidgetReference) ui.find(this);
+		TreeItem item = (TreeItem) ref.getWidget();
+		return UIProxy.getExpanded(item);
+	}
+
 	///////////////////////////////////////////////////////////////////////////
 	//
 	// Condition Factories
@@ -343,7 +349,7 @@ public class TreeItemLocator2 extends ControlRelativeLocator implements IItemLoc
 	 * @param selected 
 	 * @param expected <code>true</code> if the tree item is expected to be selected, else
 	 *            <code>false</code>
-	 */   
+	 */
 	public IUICondition isSelected(boolean selected) {
 		return new IsSelectedCondition(this, selected);
 	}
@@ -361,7 +367,7 @@ public class TreeItemLocator2 extends ControlRelativeLocator implements IItemLoc
 	 * Create a condition that tests if the given tree item is checked.
 	 * @param expected <code>true</code> if the tree item is expected to be checked, else
 	 *            <code>false</code>
-	 */            
+	 */
 	public IUICondition isChecked(boolean expected) {
 		return new IsCheckedCondition(this, expected);
 	}

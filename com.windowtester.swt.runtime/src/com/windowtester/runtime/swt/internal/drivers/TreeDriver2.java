@@ -61,11 +61,16 @@ public class TreeDriver2
 	 * @param index
 	 * @return the tree item revealed
 	 */
-	//TODO: expand
 	public TreeItemReference reveal(TreeReference tree, String itemPath, int index) throws WidgetNotFoundException, MultipleWidgetsFoundException{
 		PathString path = new PathString(itemPath);
 		//find all treeItems that match the path
-		List<TreeItemReference> treeItemReferences = recursiveFind(tree, path);
+		//try String equals first
+		List<TreeItemReference> treeItemReferences = recursiveFind(tree, path, index, false);
+		//only if that does not find anything, try again with pattern matching
+		if(treeItemReferences.isEmpty()){
+			System.out.println("try pattern matching");
+			treeItemReferences = recursiveFind(tree, path, index, true);
+		}
 		
 		if(treeItemReferences.isEmpty()){
 			ScreenCapture.createScreenCapture();
@@ -73,7 +78,12 @@ public class TreeDriver2
 		}else if(treeItemReferences.size() > 1){
 			//use index or throw exception
 			if(index != WidgetLocator.UNASSIGNED){
-				return treeItemReferences.get(index);
+				try{
+					return treeItemReferences.get(index);
+				}catch(IndexOutOfBoundsException e){
+					//is this better than throwing a IndexOutOfBoundsException?
+					throw new WidgetNotFoundException("No tree items found for \'" + itemPath + " with index "+ index + ".");
+				}
 			}else{
 				throw new MultipleWidgetsFoundException("Multiple tree items found for \'" + itemPath + ".");
 			}
@@ -107,45 +117,25 @@ public class TreeDriver2
 			}
 		});
 
-		List<TreeItemReference> found = revealExactMatch(nodeText);
-		
-		if(!found.isEmpty()){
-			return found;
+		List<TreeItemReference> found = revealMatch(nodeText, false);
+		if(found.isEmpty()){
+			found = revealMatch(nodeText, true);
 		}
 		
-		found = revealPatternMatch(nodeText);
-		
 		if(!found.isEmpty()){
-			return found;
+			throw new WidgetNotFoundException("No tree items found for \'" + nodeText + "\' in " + getAllItemText(textForItems));
 		}
-
-		throw new WidgetNotFoundException("No tree items found for \'" + nodeText + "\' in "
-			+ getAllItemText(textForItems));
+		return found;
 	}
 
 	// Look for an exact match
-	private List<TreeItemReference> revealExactMatch(String nodeText) {
+	private List<TreeItemReference> revealMatch(String nodeText, boolean patternMatch) {
 
 		List<TreeItemReference> found = new ArrayList<TreeItemReference>();
 		for (int row = 0; row < textForItems.length; row++) {
 			String[] rowTexts = textForItems[row];
 			for (String text : rowTexts) {
-				if (nodeText.equals(text)) {
-					found.add(items[row]);
-				}
-			}
-		}
-		return found;
-	}
-	
-	// Look for a pattern match
-	private List<TreeItemReference> revealPatternMatch(String nodeText) {
-
-		List<TreeItemReference> found = new ArrayList<TreeItemReference>();
-		for (int row = 0; row < textForItems.length; row++) {
-			String[] rowTexts = textForItems[row];
-			for (String text : rowTexts) {
-				if (StringComparator.matches(StringUtils.trimMenuText(text), nodeText)) {
+				if (patternMatch ? StringComparator.matches(StringUtils.trimMenuText(text), nodeText) : nodeText.equals(text)) {
 					found.add(items[row]);
 				}
 			}
@@ -153,29 +143,33 @@ public class TreeDriver2
 		return found;
 	}
 
-	/* HIER WEITERMACHEN */
-	//TODO: wie kann man verhindern, dass alle Möglichkeiten im Baum ausprobiert werden?
+	//TODO: how can possible tree item matches before the actual "hit" be skipped during search?
 	//TODO: columns
 	//TODO: pattern match
-	private List<TreeItemReference> recursiveFind(TreeItemReferenceContainer container, PathString ps){
-		//TODO: handle dynamic tree
+	//TODO: handle dynamic trees
+	private List<TreeItemReference> recursiveFind(TreeItemReferenceContainer container, PathString ps, int index, boolean patternMatch){
 		List<TreeItemReference> foundTreeItems = new ArrayList<TreeItemReference>();
 		//does this still work with dynamic trees?
 		if(container.getItems().length > 0){
 			container.expand();
 		}
 		TreeItemReference[] items = container.getItems();
-		String nodeText = ps.next();
+		String expectedItemText = ps.next();
 		for(int i = 0; i < items.length; i++){
-			if(nodeText.equals(items[i].getText())){
+			String actualItemText = items[i].getText();
+			//Use either String equals method or pattern matching
+			//TODO: is trimming needed for pattern matching?
+			if(patternMatch ? StringComparator.matches(actualItemText, expectedItemText) : expectedItemText.equals(actualItemText)){
 				System.out.println("NodeText equals " + items[i].getText());
 				if(ps.hasNext()){
-					foundTreeItems.addAll(recursiveFind(items[i], ps));
+					//shortcut
+					if(index != WidgetLocator.UNASSIGNED && foundTreeItems.size() == index+1){
+						return foundTreeItems;
+					}
+					foundTreeItems.addAll(recursiveFind(items[i], ps, index, patternMatch));
 					ps.last(); //important!
-					//TODO: Shortcut if index == soundsovieltes Element => break 
 				}else{
 					foundTreeItems.add(items[i]);
-					//TODO: Shortcut if index == WidgetLocator.UNASSIGNED ?
 				}
 			}
 		}
