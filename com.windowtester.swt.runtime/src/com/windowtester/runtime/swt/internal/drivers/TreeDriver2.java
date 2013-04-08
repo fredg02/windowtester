@@ -69,6 +69,7 @@ public class TreeDriver2
 		//only if that does not find anything, try again with pattern matching
 		if(treeItemReferences.isEmpty()){
 			System.out.println("try pattern matching");
+			path = new PathString(itemPath); //index needs to be reset
 			treeItemReferences = recursiveFind(tree, path, index, true);
 		}
 		

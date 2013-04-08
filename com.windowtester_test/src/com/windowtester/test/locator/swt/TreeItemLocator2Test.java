@@ -224,6 +224,10 @@ public class TreeItemLocator2Test extends AbstractLocatorTest {
 		}
 	}
 
+	public void testMultipleTreeItemsWithPatternMatching() throws WidgetSearchException {
+		checkMultipleTreeItems("Root/.*/label4", "label4", 2);
+	}
+
 	//TODO: which tests use TreeItemLocator and need to be run?
 	/*
 	 * BasicRecorderSmokeTests
